@@ -17,11 +17,12 @@ async def init_db():
             );
 
             CREATE TABLE IF NOT EXISTS categories (
-                id         INTEGER PRIMARY KEY AUTOINCREMENT,
-                name_uz    TEXT NOT NULL,
-                name_ru    TEXT NOT NULL,
-                name_en    TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                name_uz     TEXT NOT NULL,
+                name_ru     TEXT NOT NULL,
+                name_en     TEXT NOT NULL,
+                youtube_url TEXT DEFAULT NULL,
+                created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
             CREATE TABLE IF NOT EXISTS files (
@@ -60,6 +61,13 @@ async def init_db():
             "INSERT OR IGNORE INTO bot_settings (key, value) VALUES ('admin_password', ?)",
             (DEFAULT_ADMIN_PASSWORD,)
         )
+        # Mavjud DB uchun migration: youtube_url ustuni yo'q bo'lsa qo'shamiz
+        try:
+            await db.execute(
+                "ALTER TABLE categories ADD COLUMN youtube_url TEXT DEFAULT NULL"
+            )
+        except Exception:
+            pass  # Ustun allaqachon mavjud — xatolikni e'tiborsiz qoldiramiz
         await db.commit()
 
 
@@ -111,11 +119,12 @@ async def get_new_users_today() -> int:
 
 
 # ─── CATEGORIES ──────────────────────────────────────────────────
-async def add_category(name_uz: str, name_ru: str, name_en: str) -> int:
+async def add_category(name_uz: str, name_ru: str, name_en: str,
+                       youtube_url: str | None = None) -> int:
     async with aiosqlite.connect(DATABASE_PATH) as db:
         cur = await db.execute(
-            "INSERT INTO categories (name_uz, name_ru, name_en) VALUES (?, ?, ?)",
-            (name_uz, name_ru, name_en)
+            "INSERT INTO categories (name_uz, name_ru, name_en, youtube_url) VALUES (?, ?, ?, ?)",
+            (name_uz, name_ru, name_en, youtube_url or None)
         )
         await db.commit()
         return cur.lastrowid
@@ -125,7 +134,7 @@ async def get_all_categories() -> list[dict]:
     async with aiosqlite.connect(DATABASE_PATH) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute(
-            "SELECT id, name_uz, name_ru, name_en FROM categories ORDER BY id"
+            "SELECT id, name_uz, name_ru, name_en, youtube_url FROM categories ORDER BY id"
         ) as cur:
             return [dict(r) for r in await cur.fetchall()]
 
