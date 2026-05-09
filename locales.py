@@ -14,7 +14,7 @@ TEXTS: dict[str, str] = {
     "no_files": "😔 Bu kategoriyada hozircha fayllar yo'q.",
     "choose_file": "📄 Faylni tanlang:",
     "downloading": "⬇️ Fayl yuborilmoqda...",
-    "file_caption": "📥 <b>{name}</b>\n📂 {category}\n⬇️ Yuklab olindi: <b>{count}</b> marta",
+    "file_caption": "📥 <b>{name}</b>\n📂 {category}\n",
 
     # Admin — kirish
     "admin_enter_password": (
@@ -31,6 +31,22 @@ TEXTS: dict[str, str] = {
         "⚙️ <b>Admin Panel</b>\n\n"
         "Kategoriyalar, fayllar va kanallarni boshqaring."
     ),
+
+    # Admin — YouTube link
+    "ask_yt_category": (
+        "🎬 <b>YouTube link qo'shish</b>\n\n"
+        "Qaysi kategoriyaga link qo'shmoqchisiz?\n"
+        "<i>(✅ — allaqachon link bor, 🔗 — yo'q)</i>"
+    ),
+    "ask_yt_url": (
+        "🔗 <b>YouTube havolasini kiriting:</b>\n\n"
+        "Misol:\n"
+        "<code>https://youtube.com/playlist?list=...</code>\n"
+        "<code>https://youtu.be/VIDEO_ID</code>\n\n"
+        "<i>Mavjud linkni o'chirish uchun «🗑 Linkni o'chirish» tugmasini bosing.</i>"
+    ),
+    "yt_link_saved":   "✅ YouTube link saqlandi!",
+    "yt_link_removed": "🗑 YouTube link o'chirildi!",
 
     # Admin — kategoriya
     "ask_cat_name_uz":          "📝 Kategoriya nomini kiriting:\n<i>(/cancel — bekor qilish)</i>",

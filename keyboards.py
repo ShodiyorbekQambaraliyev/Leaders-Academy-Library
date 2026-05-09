@@ -97,6 +97,7 @@ def admin_panel_inline_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🗑 Kategoriya o'chirish",  callback_data="adm:del_cat")],
         [InlineKeyboardButton(text="📤 Fayl qo'shish",        callback_data="adm:add_file")],
         [InlineKeyboardButton(text="🗑 Fayl o'chirish",        callback_data="adm:del_file")],
+        [InlineKeyboardButton(text="🎬 YouTube link qo'shish", callback_data="adm:add_yt")],
         [InlineKeyboardButton(text="📢 Kanallar",              callback_data="adm:channels")],
         [InlineKeyboardButton(text="📊 Statistika",            callback_data="adm:stats")],
         [InlineKeyboardButton(text="🔑 Parol o'zgartirish",   callback_data="adm:change_pwd")],
@@ -114,6 +115,36 @@ def admin_back_inline_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="⬅️ Admin panel", callback_data="adm:back"),
     ]])
+
+
+def admin_yt_categories_keyboard(categories: list[dict]) -> InlineKeyboardMarkup:
+    """
+    YouTube link qo'shish uchun kategoriya tanlash.
+    ✅ — allaqachon link bor, 🔗 — yo'q.
+    """
+    rows = []
+    for i, cat in enumerate(categories):
+        has_link = bool(cat.get("youtube_url"))
+        indicator = "✅" if has_link else "🔗"
+        book = BOOK_COLORS[i % len(BOOK_COLORS)]
+        rows.append([InlineKeyboardButton(
+            text=f"{indicator} {book} {cat['name_uz']}",
+            callback_data=f"adm_yt:{cat['id']}",
+        )])
+    rows.append([InlineKeyboardButton(text="❌ Bekor qilish", callback_data="adm:cancel")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def admin_yt_url_keyboard(has_existing: bool) -> InlineKeyboardMarkup:
+    """YouTube URL kiritish sahifasidagi tugmalar."""
+    rows = []
+    if has_existing:
+        rows.append([InlineKeyboardButton(
+            text="🗑 Linkni o'chirish",
+            callback_data="adm_yt:remove",
+        )])
+    rows.append([InlineKeyboardButton(text="❌ Bekor qilish", callback_data="adm:cancel")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def admin_categories_inline_keyboard(categories: list[dict], action: str) -> InlineKeyboardMarkup:

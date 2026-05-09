@@ -14,6 +14,8 @@ from keyboards import (
     admin_files_inline_keyboard,
     admin_channels_inline_keyboard,
     admin_del_channels_inline_keyboard,
+    admin_yt_categories_keyboard,
+    admin_yt_url_keyboard,
     skip_inline_keyboard,
     main_reply_keyboard,
 )
@@ -63,6 +65,11 @@ class AddChannel(StatesGroup):
     channel_id = State()
     title      = State()
     url        = State()
+
+
+class AddYoutubeLink(StatesGroup):
+    category = State()   # kategoriya tanlandi, URL kutilmoqda
+    url      = State()   # URL kiritilmoqda
 
 
 # ─── Yordamchi ────────────────────────────────────────────────────────────────
@@ -637,3 +644,112 @@ async def adm_del_channel_confirm(call: CallbackQuery, bot: Bot):
         admin_panel_inline_keyboard(),
     )
     await call.answer()
+
+
+# ═══════════════════════════════════════════════════════
+#  YOUTUBE LINK QO'SHISH / O'ZGARTIRISH
+# ═══════════════════════════════════════════════════════
+
+@router.callback_query(F.data == "adm:add_yt")
+async def adm_add_yt_start(call: CallbackQuery, bot: Bot, state: FSMContext):
+    """Kategoriya tanlash sahifasini ko'rsatadi."""
+    user_id = call.from_user.id
+    if not is_admin(user_id):
+        await call.answer()
+        return
+
+    categories = await db.get_all_categories()
+    if not categories:
+        await call.answer(t("no_categories"), show_alert=True)
+        return
+
+    await state.set_state(AddYoutubeLink.category)
+    await show_panel(
+        bot, call.message.chat.id, user_id,
+        t("ask_yt_category"),
+        admin_yt_categories_keyboard(categories),
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("adm_yt:"), AddYoutubeLink.category)
+async def adm_yt_cat_selected(call: CallbackQuery, bot: Bot, state: FSMContext):
+    """Kategoriya tanlandi — URL so'raladi."""
+    user_id = call.from_user.id
+    cat_id  = int(call.data.split(":")[1])
+
+    cat = await db.get_category_by_id(cat_id)
+    if not cat:
+        await call.answer("❌ Kategoriya topilmadi!", show_alert=True)
+        return
+
+    await state.update_data(cat_id=cat_id, cat_name=cat["name_uz"],
+                            has_url=bool(cat.get("youtube_url")))
+    await state.set_state(AddYoutubeLink.url)
+
+    # Mavjud URL ni ko'rsatamiz
+    existing = cat.get("youtube_url")
+    extra = f"\n\n📌 Joriy link:\n<code>{existing}</code>" if existing else ""
+
+    await show_panel(
+        bot, call.message.chat.id, user_id,
+        t("ask_yt_url") + extra,
+        admin_yt_url_keyboard(has_existing=bool(existing)),
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data == "adm_yt:remove")
+async def adm_yt_remove(call: CallbackQuery, bot: Bot, state: FSMContext):
+    """Mavjud YouTube linkni o'chiradi."""
+    user_id = call.from_user.id
+    if not is_admin(user_id):
+        await call.answer()
+        return
+
+    data   = await state.get_data()
+    cat_id = data.get("cat_id")
+    if not cat_id:
+        await call.answer("❌ Xatolik: kategoriya tanlanmagan.", show_alert=True)
+        return
+
+    await db.update_category_youtube_url(cat_id, None)
+    await state.clear()
+    await show_panel(
+        bot, call.message.chat.id, user_id,
+        t("yt_link_removed") + "\n\n" + t("admin_panel"),
+        admin_panel_inline_keyboard(),
+    )
+    await call.answer()
+
+
+@router.message(AddYoutubeLink.url)
+async def adm_yt_url_entered(msg: Message, bot: Bot, state: FSMContext):
+    """Foydalanuvchi URL kiritdi — saqlaydi."""
+    user_id = msg.from_user.id
+    url     = msg.text.strip() if msg.text else ""
+    await delete_msg(msg)
+
+    if not url:
+        data = await state.get_data()
+        await show_panel(
+            bot, msg.chat.id, user_id,
+            t("ask_yt_url"),
+            admin_yt_url_keyboard(has_existing=data.get("has_url", False)),
+        )
+        return
+
+    # https:// bo'lmasa qo'shamiz
+    if not url.startswith("http://") and not url.startswith("https://"):
+        url = "https://" + url
+
+    data   = await state.get_data()
+    cat_id = data.get("cat_id")
+    await db.update_category_youtube_url(cat_id, url)
+    await state.clear()
+
+    await show_panel(
+        bot, msg.chat.id, user_id,
+        t("yt_link_saved") + "\n\n" + t("admin_panel"),
+        admin_panel_inline_keyboard(),
+    )

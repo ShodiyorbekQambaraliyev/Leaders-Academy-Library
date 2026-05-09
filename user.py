@@ -129,8 +129,7 @@ async def send_file(call: CallbackQuery, bot: Bot):
     cat      = await db.get_category_by_id(file["category_id"])
     name     = file["name_uz"]
     cat_name = cat["name_uz"] if cat else "—"
-    caption  = t("file_caption", name=name, category=cat_name,
-                 count=file["download_count"] + 1)
+    caption  = t("file_caption", name=name, category=cat_name)
 
     # 1. Faylni yuboramiz
     await bot.send_document(
